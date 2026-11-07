@@ -1,0 +1,68 @@
+/* TRIVIA QUEST - tema arcade violeta */
+.root {
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    -fx-background-color: linear-gradient(to bottom right, #07051b, #12083d 55%, #080a2b);
+    -fx-text-fill: #f7f3ff;
+}
+#app-root, #login-root {
+    -fx-background-color: linear-gradient(to bottom right, #07051b, #12083d 55%, #080a2b);
+}
+#login-root { -fx-spacing: 10px; }
+#login-icon { -fx-font-size: 54px; -fx-effect: dropshadow(gaussian, #a855f7, 22, 0.55, 0, 0); }
+#login-title, #home-title {
+    -fx-font-size: 38px; -fx-font-weight: 900; -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, #8b35ff, 18, 0.55, 0, 0);
+}
+#login-subtitle, #eyebrow { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #c4a7ff; }
+#login-card {
+    -fx-background-color: linear-gradient(to bottom right, rgba(30,20,75,0.98), rgba(12,12,48,0.98));
+    -fx-background-radius: 24px; -fx-border-color: #7545e8; -fx-border-width: 1.4px; -fx-border-radius: 24px;
+    -fx-effect: dropshadow(gaussian, rgba(112,48,255,0.35), 24, 0.2, 0, 8);
+}
+#card-title, #section-title { -fx-font-size: 23px; -fx-font-weight: bold; -fx-text-fill: white; }
+.input-field {
+    -fx-background-color: #0b092b; -fx-text-fill: white; -fx-prompt-text-fill: #938ab9;
+    -fx-background-radius: 12px; -fx-border-color: #45317f; -fx-border-radius: 12px; -fx-padding: 13px 15px; -fx-font-size: 14px;
+}
+.input-field:focused { -fx-border-color: #b36cff; -fx-effect: dropshadow(gaussian, rgba(163,90,255,0.35), 10, 0.2, 0, 0); }
+#login-message { -fx-font-size: 12px; -fx-wrap-text: true; -fx-text-alignment: center; }
+#home-screen, #game-screen, #shop-screen { -fx-padding: 38px; -fx-alignment: center; -fx-spacing: 20px; }
+#home-title { -fx-font-size: 48px; }
+#home-screen .label { -fx-text-fill: #eee8ff; }
+#home-screen .label#eyebrow { -fx-text-fill: #c7a8ff; }
+#home-actions { -fx-alignment: center; -fx-spacing: 16px; }
+.button {
+    -fx-background-color: linear-gradient(to bottom, #963dff, #5b16d5);
+    -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold;
+    -fx-background-radius: 13px; -fx-padding: 12px 22px; -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(124,55,255,0.35), 12, 0.15, 0, 4);
+}
+.button:hover { -fx-background-color: linear-gradient(to bottom, #b46aff, #7628ee); -fx-scale-x: 1.025; -fx-scale-y: 1.025; }
+.button:pressed { -fx-scale-x: 0.98; -fx-scale-y: 0.98; }
+#primary-button { -fx-min-width: 210px; -fx-font-size: 14px; -fx-padding: 14px 24px; }
+#secondary-button { -fx-background-color: #21164b; -fx-border-color: #7042c5; -fx-border-radius: 13px; -fx-border-width: 1px; -fx-min-width: 180px; }
+#back-button { -fx-background-color: transparent; -fx-effect: none; -fx-border-color: #49327e; -fx-border-radius: 10px; }
+#lbl-estado {
+    -fx-background-color: #17103e; -fx-background-radius: 14px; -fx-border-color: #5934a6; -fx-border-radius: 14px;
+    -fx-padding: 12px 18px; -fx-text-fill: #f5eaff; -fx-font-size: 13px; -fx-font-weight: bold;
+}
+#lbl-pregunta {
+    -fx-font-size: 23px; -fx-font-weight: bold; -fx-text-fill: white; -fx-wrap-text: true;
+    -fx-text-alignment: center; -fx-max-width: 680px;
+}
+#lbl-pista { -fx-text-fill: #d8b8ff; -fx-font-size: 13px; -fx-font-style: italic; -fx-wrap-text: true; -fx-text-alignment: center; }
+#vbox-opciones {
+    -fx-background-color: rgba(20,13,59,0.92); -fx-background-radius: 18px; -fx-border-color: #493080; -fx-border-radius: 18px;
+    -fx-padding: 20px; -fx-min-width: 420px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 16, 0.1, 0, 5);
+}
+.radio-button { -fx-text-fill: #f3edff; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8px; -fx-cursor: hand; }
+.radio-button:hover { -fx-text-fill: #d4aaff; }
+.radio-button .radio { -fx-background-color: #100b32; -fx-border-color: #7651b8; -fx-border-width: 1.5px; -fx-border-radius: 20px; -fx-background-radius: 20px; }
+.radio-button:selected .radio { -fx-border-color: #c18aff; }
+.radio-button:selected .radio .dot { -fx-background-color: #c18aff; }
+#powerups-panel { -fx-alignment: center; -fx-spacing: 8px; -fx-padding: 10px; -fx-background-color: rgba(20,13,59,0.7); -fx-background-radius: 15px; }
+#powerups-panel .button { -fx-font-size: 11px; -fx-padding: 10px 12px; -fx-background-color: #241653; -fx-border-color: #6441a7; -fx-border-radius: 10px; -fx-effect: none; }
+#shop-screen { -fx-spacing: 18px; }
+#shop-screen #shop-item { -fx-min-width: 330px; -fx-alignment: center-left; -fx-padding: 13px 18px; -fx-background-color: #21164b; -fx-border-color: #6840b5; -fx-border-radius: 12px; -fx-effect: none; }
+#shop-screen #shop-item:hover { -fx-background-color: #39206e; }
+#shop-screen .label { -fx-text-fill: #f3edff; -fx-font-size: 14px; }
