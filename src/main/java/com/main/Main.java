@@ -1,12 +1,16 @@
 
 package com.main;
 
+import com.excepciones.ComodinNoDisponibleException;
 import com.excepciones.MonedasInsuficientesException;
 import com.excepciones.SinVidasDisponiblesException;
+import com.excepciones.TiempoAgotadoException;
 import com.model.Pregunta;
 import com.service.JuegoService;
 import com.view.LoginView;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -16,7 +20,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-
+import javafx.util.Duration;
+import javafx.application.Platform;
 public class Main extends Application {
 
     private JuegoService juegoService = new JuegoService();
@@ -29,6 +34,7 @@ public class Main extends Application {
     private Label lblPregunta;
     private Label lblEstado;
     private Label lblPista;
+    private Label lblTiempo;
 
     private RadioButton[] rbOpciones;
     private ToggleGroup grupoOpciones;
@@ -43,6 +49,10 @@ public class Main extends Application {
 
     private Label shopCoinsLabel;
     private Label feedbackTienda;
+
+    // Temporizador
+    private Timeline temporizador;
+    private int segundosRestantes = 20;
 
     @Override
     public void start(Stage primaryStage) {
@@ -90,6 +100,9 @@ public class Main extends Application {
                 "Trivia Quest - JavaFX (Jugador: "
                 + LoginView.usuarioLogueado + ")"
         );
+
+        // Detener el temporizador si se cierra la ventana.
+        primaryStage.setOnCloseRequest(e -> detenerTemporizador());
 
         primaryStage.setScene(scene);
         primaryStage.show();
@@ -154,10 +167,20 @@ public class Main extends Application {
         Button btnSalir = new Button("←  Salir al inicio");
         btnSalir.setId("back-button");
 
-        btnSalir.setOnAction(e -> mostrarPantalla(homeScreen));
+        btnSalir.setOnAction(e -> {
+            detenerTemporizador();
+            mostrarPantalla(homeScreen);
+        });
 
         lblEstado = new Label();
         lblEstado.setId("lbl-estado");
+
+        // Contador visual
+        lblTiempo = new Label("⏱️ Tiempo: 20 segundos");
+        lblTiempo.setStyle(
+                "-fx-font-size: 20px;"
+                + "-fx-font-weight: bold;"
+        );
 
         lblPregunta = new Label();
         lblPregunta.setId("lbl-pregunta");
@@ -197,8 +220,8 @@ public class Main extends Application {
         HBox panelComodines = new HBox(
                 8, btnBomba, btnEscudo, btnCambio, btnPista, btnDobleOp
         );
-        panelComodines.setId("powerups-panel");
 
+        panelComodines.setId("powerups-panel");
         panelComodines.setAlignment(Pos.CENTER);
 
         btnResponder = new Button("CONFIRMAR RESPUESTA");
@@ -207,8 +230,14 @@ public class Main extends Application {
         btnResponder.setOnAction(e -> procesarRespuesta());
 
         game.getChildren().addAll(
-                btnSalir, lblEstado, lblPregunta, lblPista,
-                vboxOpciones, panelComodines, btnResponder
+                btnSalir,
+                lblEstado,
+                lblTiempo,
+                lblPregunta,
+                lblPista,
+                vboxOpciones,
+                panelComodines,
+                btnResponder
         );
 
         return game;
@@ -276,6 +305,7 @@ public class Main extends Application {
         btn.setOnAction(e -> {
             try {
                 juegoService.comprarComodin(codigo);
+
                 feedbackTienda.setText("¡Compra realizada con éxito!");
 
                 shopCoinsLabel.setText(
@@ -292,6 +322,10 @@ public class Main extends Application {
 
     private void mostrarPantalla(VBox pantallaTarget) {
 
+        if (pantallaTarget != gameScreen) {
+            detenerTemporizador();
+        }
+
         rootContainer.getChildren().forEach(
                 node -> node.setVisible(false)
         );
@@ -299,7 +333,133 @@ public class Main extends Application {
         pantallaTarget.setVisible(true);
     }
 
+    // ==========================================
+    // TEMPORIZADOR
+    // ==========================================
+
+    
+private void iniciarTemporizador() {
+
+    detenerTemporizador();
+
+    segundosRestantes = 20;
+
+    actualizarTextoTiempo();
+
+    temporizador = new Timeline(
+            new KeyFrame(Duration.seconds(1), e -> {
+
+                segundosRestantes--;
+
+                actualizarTextoTiempo();
+
+                if (segundosRestantes <= 0) {
+
+                    System.out.println("¡EL TIEMPO LLEGÓ A CERO!");
+
+                    detenerTemporizador();
+
+                    Platform.runLater(() -> {
+                        manejarTiempoAgotado();
+                    });
+                }
+            })
+    );
+
+    temporizador.setCycleCount(20);
+    temporizador.play();
+}
+
+
+    private void detenerTemporizador() {
+
+        if (temporizador != null) {
+            temporizador.stop();
+            temporizador = null;
+        }
+    }
+
+    private void actualizarTextoTiempo() {
+
+        if (lblTiempo != null) {
+
+            lblTiempo.setText(
+                    "⏱️ Tiempo restante: "
+                    + segundosRestantes + " segundos"
+            );
+
+            if (segundosRestantes <= 5) {
+                lblTiempo.setStyle(
+                        "-fx-font-size: 20px;"
+                        + "-fx-font-weight: bold;"
+                        + "-fx-text-fill: red;"
+                );
+            } else {
+                lblTiempo.setStyle(
+                        "-fx-font-size: 20px;"
+                        + "-fx-font-weight: bold;"
+                );
+            }
+        }
+    }
+
+    private void manejarTiempoAgotado() {
+        System.out.println("Ejecutando manejarTiempoAgotado()");
+        try {
+
+            // Lanzamos y capturamos nuestra excepción.
+            throw new TiempoAgotadoException(
+                    "¡Se terminó el tiempo para responder!"
+            );
+
+        } catch (TiempoAgotadoException ex) {
+
+            try {
+
+                boolean continuar =
+                        juegoService.registrarTiempoAgotado();
+
+                actualizarEstadoTexto();
+
+                if (continuar) {
+
+                    mostrarAlerta(
+                            "¡Tiempo agotado!",
+                            ex.getMessage()
+                            + "\nTenés otra oportunidad para responder.",
+                            Alert.AlertType.WARNING
+                    );
+
+                    // Nueva oportunidad: otros 20 segundos.
+                    iniciarTemporizador();
+
+                } else {
+
+                    mostrarAlerta(
+                            "¡Tiempo agotado!",
+                            ex.getMessage()
+                            + "\nPerdiste una vida.",
+                            Alert.AlertType.WARNING
+                    );
+
+                    cargarSiguientePregunta();
+                }
+
+            } catch (SinVidasDisponiblesException exVidas) {
+
+                detenerTemporizador();
+                manejarGameOver(exVidas);
+            }
+        }
+    }
+
+    // ==========================================
+    // CARGA DE PREGUNTAS
+    // ==========================================
+
     private void cargarSiguientePregunta() {
+
+        detenerTemporizador();
 
         lblPista.setText("");
 
@@ -314,6 +474,7 @@ public class Main extends Application {
             for (int i = 0; i < 4; i++) {
 
                 if (i < ops.length) {
+
                     rbOpciones[i].setText(ops[i]);
                     rbOpciones[i].setVisible(true);
                     rbOpciones[i].setManaged(true);
@@ -321,6 +482,7 @@ public class Main extends Application {
                     rbOpciones[i].setDisable(false);
 
                 } else {
+
                     rbOpciones[i].setVisible(false);
                     rbOpciones[i].setManaged(false);
                 }
@@ -328,7 +490,12 @@ public class Main extends Application {
 
             actualizarEstadoTexto();
 
+            // Cada pregunta comienza con 20 segundos.
+            iniciarTemporizador();
+
         } else {
+
+            detenerTemporizador();
 
             mostrarAlerta(
                     "¡Juego Terminado!",
@@ -341,7 +508,6 @@ public class Main extends Application {
             mostrarPantalla(homeScreen);
         }
     }
-
 
     private void actualizarEstadoTexto() {
 
@@ -357,8 +523,14 @@ public class Main extends Application {
         );
     }
 
-    private void usarBomba() {
+    // ==========================================
+    // COMODINES
+    // ==========================================
 
+    
+private void usarBomba() {
+
+    try {
         if (juegoService.usarComodinFifty()) {
 
             actualizarEstadoTexto();
@@ -377,18 +549,22 @@ public class Main extends Application {
                     deshabilitadas++;
                 }
             }
-
-        } else {
-            mostrarAlerta(
-                    "Sin comodín",
-                    "No tenés este comodín. ¡Compralo en la tienda!",
-                    Alert.AlertType.WARNING
-            );
         }
+
+    } catch (ComodinNoDisponibleException ex) {
+
+        mostrarAlerta(
+                "Comodín no disponible",
+                ex.getMessage(),
+                Alert.AlertType.WARNING
+        );
     }
+}
+
 
     private void usarEscudo() {
 
+    try {
         if (juegoService.usarEscudo()) {
 
             actualizarEstadoTexto();
@@ -396,18 +572,20 @@ public class Main extends Application {
             lblPista.setText(
                     "🛡️ ¡Escudo activado! Si te equivocás en esta pregunta no perderás vidas."
             );
-
-        } else {
-            mostrarAlerta(
-                    "Atención",
-                    "No tenés escudos o ya hay uno activo en esta pregunta.",
-                    Alert.AlertType.WARNING
-            );
         }
-    }
 
+    } catch (ComodinNoDisponibleException ex) {
+
+        mostrarAlerta(
+                "Comodín no disponible",
+                ex.getMessage(),
+                Alert.AlertType.WARNING
+        );
+    }
+}
     private void usarCambio() {
 
+    try {
         if (juegoService.usarCambio()) {
 
             mostrarAlerta(
@@ -417,18 +595,21 @@ public class Main extends Application {
             );
 
             cargarSiguientePregunta();
-
-        } else {
-            mostrarAlerta(
-                    "Sin comodín",
-                    "No tenés saltos de pregunta disponibles.",
-                    Alert.AlertType.WARNING
-            );
         }
+
+    } catch (ComodinNoDisponibleException ex) {
+
+        mostrarAlerta(
+                "Comodín no disponible",
+                ex.getMessage(),
+                Alert.AlertType.WARNING
+        );
     }
+}
 
     private void usarPista() {
 
+    try {
         if (juegoService.usarPista()) {
 
             actualizarEstadoTexto();
@@ -437,18 +618,21 @@ public class Main extends Application {
                     "💡 Pista: La pregunta pertenece a la categoría de ["
                     + preguntaActual.getCategoria() + "]."
             );
-
-        } else {
-            mostrarAlerta(
-                    "Sin comodín",
-                    "No tenés pistas disponibles.",
-                    Alert.AlertType.WARNING
-            );
         }
+
+    } catch (ComodinNoDisponibleException ex) {
+
+        mostrarAlerta(
+                "Comodín no disponible",
+                ex.getMessage(),
+                Alert.AlertType.WARNING
+        );
     }
+}
 
     private void usarDobleOp() {
 
+    try {
         if (juegoService.usarDobleOp()) {
 
             actualizarEstadoTexto();
@@ -456,15 +640,21 @@ public class Main extends Application {
             lblPista.setText(
                     "✨ ¡Doble Oportunidad activada! Podés fallar un intento sin perder vidas."
             );
-
-        } else {
-            mostrarAlerta(
-                    "Atención",
-                    "No tenés comodines de Doble Oportunidad disponibles.",
-                    Alert.AlertType.WARNING
-            );
         }
+
+    } catch (ComodinNoDisponibleException ex) {
+
+        mostrarAlerta(
+                "Comodín no disponible",
+                ex.getMessage(),
+                Alert.AlertType.WARNING
+        );
     }
+}
+
+    // ==========================================
+    // PROCESAR RESPUESTAS
+    // ==========================================
 
     private void procesarRespuesta() {
 
@@ -492,6 +682,12 @@ public class Main extends Application {
             return;
         }
 
+        // Guardamos el estado de los comodines antes de responder.
+        boolean escudoAntes = juegoService.isEscudoActivo();
+        boolean dobleAntes = juegoService.isDobleOpActiva();
+
+        detenerTemporizador();
+
         try {
 
             boolean correcta = juegoService.responder(
@@ -510,25 +706,32 @@ public class Main extends Application {
 
             } else {
 
-                if (juegoService.isDobleOpActiva()) {
+                if (escudoAntes) {
 
                     mostrarAlerta(
                             "Respuesta Errónea",
-                            "¡Tenés Doble Oportunidad! Probá con otra opción.",
+                            "¡El escudo te protegió de perder una vida! "
+                            + "Intentá responder nuevamente.",
                             Alert.AlertType.WARNING
                     );
 
                     rbOpciones[seleccion].setDisable(true);
 
-                } else if (juegoService.isEscudoActivo()) {
+                    iniciarTemporizador();
+
+                } else if (dobleAntes
+                        && juegoService.isDobleOpActiva()) {
 
                     mostrarAlerta(
                             "Respuesta Errónea",
-                            "¡El escudo te protegió de perder una vida! Intentá responder nuevamente.",
+                            "¡Tenés Doble Oportunidad! "
+                            + "Probá con otra opción.",
                             Alert.AlertType.WARNING
                     );
 
                     rbOpciones[seleccion].setDisable(true);
+
+                    iniciarTemporizador();
 
                 } else {
 
@@ -546,26 +749,41 @@ public class Main extends Application {
 
         } catch (SinVidasDisponiblesException ex) {
 
-            // Guardamos el saldo antes de aplicar la penalización
-            int monedasAntes = juegoService.getMonedas();
-
-            // Aplicamos la penalización del 20%
-            juegoService.reiniciarPorDerrota();
-
-            int monedasPerdidas = monedasAntes - juegoService.getMonedas();
-
-            mostrarAlerta(
-                    "Game Over",
-                    ex.getMessage()
-                    + "\n\nMonedas anteriores: " + monedasAntes
-                    + "\nMonedas perdidas: " + monedasPerdidas
-                    + "\nMonedas conservadas: " + juegoService.getMonedas(),
-                    Alert.AlertType.ERROR
-            );
-
-            mostrarPantalla(homeScreen);
+            detenerTemporizador();
+            manejarGameOver(ex);
         }
     }
+
+    // ==========================================
+    // GAME OVER
+    // ==========================================
+
+    private void manejarGameOver(SinVidasDisponiblesException ex) {
+
+        detenerTemporizador();
+
+        int monedasAntes = juegoService.getMonedas();
+
+        juegoService.reiniciarPorDerrota();
+
+        int monedasPerdidas =
+                monedasAntes - juegoService.getMonedas();
+
+        mostrarAlerta(
+                "Game Over",
+                ex.getMessage()
+                + "\n\nMonedas anteriores: " + monedasAntes
+                + "\nMonedas perdidas: " + monedasPerdidas
+                + "\nMonedas conservadas: " + juegoService.getMonedas(),
+                Alert.AlertType.ERROR
+        );
+
+        mostrarPantalla(homeScreen);
+    }
+
+    // ==========================================
+    // ALERTAS
+    // ==========================================
 
     private void mostrarAlerta(
             String titulo,

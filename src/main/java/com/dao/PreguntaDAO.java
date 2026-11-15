@@ -1,6 +1,12 @@
 package com.dao;
 
 import com.model.Pregunta;
+import com.model.PreguntaAnimes;
+import com.model.PreguntaDibujosAnimados;
+import com.model.PreguntaFutbol;
+import com.model.PreguntaPeliculas;
+import com.model.PreguntaSeries;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,8 +60,9 @@ public class PreguntaDAO {
                         String categoriaLegible = formatearNombreCategoria(tabla);
 
                         // Creamos la instancia de la Pregunta con los datos de la BD
-                        Pregunta p = new Pregunta(enunciado, opciones, respuestaCorrecta, categoriaLegible);
-                        listaPreguntas.add(p);
+                        Pregunta p = crearPregunta(tabla,enunciado,opciones,respuestaCorrecta,categoriaLegible
+                        );
+                    listaPreguntas.add(p);
                     }
                 }
             }
@@ -99,4 +106,42 @@ private String formatearSinTildes(String texto) {
             default: return "General";
         }
     }
+    private Pregunta crearPregunta(String tabla, String enunciado,
+                               String[] opciones, int respuestaCorrecta,
+                               String categoria) {
+
+    switch (tabla) {
+
+        case "peliculas":
+            return new PreguntaPeliculas(
+                enunciado, opciones, respuestaCorrecta
+            );
+
+        case "series":
+            return new PreguntaSeries(
+                enunciado, opciones, respuestaCorrecta
+            );
+
+        case "animes":
+            return new PreguntaAnimes(
+                enunciado, opciones, respuestaCorrecta
+            );
+
+        case "futbol_argentino":
+        case "futbol_europeo":
+            return new PreguntaFutbol(
+                enunciado, opciones, respuestaCorrecta, categoria
+            );
+
+        case "dibujos_animados":
+            return new PreguntaDibujosAnimados(
+                enunciado, opciones, respuestaCorrecta
+            );
+
+        default:
+            throw new IllegalArgumentException(
+                "Categoría desconocida: " + tabla
+            );
+    }
+}
 }

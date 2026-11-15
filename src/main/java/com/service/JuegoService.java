@@ -1,14 +1,20 @@
+
 package com.service;
 
 import com.dao.PreguntaDAO;
 import com.excepciones.MonedasInsuficientesException;
+import com.excepciones.CategoriaInvalidaException;
+import com.excepciones.ComodinNoDisponibleException;
+import com.excepciones.TiempoAgotadoException;
 import com.excepciones.SinVidasDisponiblesException;
 import com.model.Pregunta;
+import com.interfaz.Evaluable;
 
 import java.util.Collections;
 import java.util.List;
 
 public class JuegoService {
+
     private PreguntaDAO preguntaDAO;
     private List<Pregunta> listaPreguntas;
     private int indiceActual;
@@ -23,26 +29,29 @@ public class JuegoService {
     private int comodinesPista;
     private int comodinesDobleOp;
 
-    // Estado del comodín activo en el turno actual
+    // Estado de los comodines activos
     private boolean escudoActivo;
     private boolean dobleOpActiva;
     private int intentosDobleOp;
 
-    
     public JuegoService() {
+
         this.preguntaDAO = new PreguntaDAO();
         this.listaPreguntas = preguntaDAO.obtenerTodas();
-        // --- LÍNEA DE DIAGNÓSTICO ---
-    System.out.println("🔍 [JuegoService] Preguntas cargadas desde la BD: " + (this.listaPreguntas != null ? this.listaPreguntas.size() : "NULL"));
-    
-    if (this.listaPreguntas == null || this.listaPreguntas.isEmpty()) {
-        System.err.println("⚠️ ¡ATENCIÓN! La lista de preguntas llegó vacía. Revisa tu PreguntaDAO o la conexión a la BD.");
-    } else {
-        System.out.println("✅ Primera pregunta de muestra: " + this.listaPreguntas.get(0).getEnunciado());
-    }
-    // ----------------------------
+
+        System.out.println("Preguntas cargadas desde la BD: "
+                + (this.listaPreguntas != null
+                ? this.listaPreguntas.size() : "NULL"));
+
+        if (this.listaPreguntas == null || this.listaPreguntas.isEmpty()) {
+            System.err.println("ATENCIÓN: La lista de preguntas está vacía.");
+        } else {
+            System.out.println("Primera pregunta: "
+                    + this.listaPreguntas.get(0).getEnunciado());
+        }
+
         Collections.shuffle(this.listaPreguntas);
-        
+
         this.indiceActual = 0;
         this.vidas = 3;
         this.puntaje = 0;
@@ -62,10 +71,13 @@ public class JuegoService {
     }
 
     public Pregunta obtenerSiguientePregunta() {
+
         resetearComodinesTurno();
+
         if (hayMasPreguntas()) {
             return listaPreguntas.get(indiceActual++);
         }
+
         return null;
     }
 
@@ -75,41 +87,57 @@ public class JuegoService {
         this.intentosDobleOp = 0;
     }
 
-    public boolean responder(Pregunta p, int opcionSeleccionada) throws SinVidasDisponiblesException {
+    // Ahora recibe la interfaz Evaluable
+    public boolean responder(Evaluable p, int opcionSeleccionada)
+            throws SinVidasDisponiblesException {
+
         boolean correcta = p.evaluarRespuesta(opcionSeleccionada);
-        
+
         if (correcta) {
+
             puntaje += 10;
             monedas += 10;
+
             return true;
+
         } else {
-            // Si tiene escudo o doble oportunidad activa en el primer intento, no pierde vida
+
             if (escudoActivo) {
-                escudoActivo = false; // Se consume la protección
+                escudoActivo = false;
                 return false;
             }
+
             if (dobleOpActiva) {
-    if (intentosDobleOp == 0) {
-        intentosDobleOp++;
-        return false;
-    } else {
-        dobleOpActiva = false;
-        intentosDobleOp = 0;
-    }
-}
-            // Si no tiene comodín de protección, pierde una vida
-            vidas--;
-            if (vidas <= 0) {
-                throw new SinVidasDisponiblesException("¡Te has quedado sin vidas!");
+
+                if (intentosDobleOp == 0) {
+                    intentosDobleOp++;
+                    return false;
+
+                } else {
+                    dobleOpActiva = false;
+                    intentosDobleOp = 0;
+                }
             }
+
+            vidas--;
+
+            if (vidas <= 0) {
+                throw new SinVidasDisponiblesException(
+                        "¡Te has quedado sin vidas!");
+            }
+
             return false;
         }
     }
 
-    // Método general de compras en la tienda
-    public void comprarComodin(String tipo) throws MonedasInsuficientesException {
+    // Compras de comodines
+    public void comprarComodin(String tipo)
+            throws MonedasInsuficientesException {
+
         int costo = 0;
+
         switch (tipo.toLowerCase()) {
+
             case "fifty": costo = 30; break;
             case "escudo": costo = 40; break;
             case "cambio": costo = 25; break;
@@ -118,11 +146,14 @@ public class JuegoService {
         }
 
         if (this.monedas < costo) {
-            throw new MonedasInsuficientesException("No tenés suficientes monedas para esta compra.");
+            throw new MonedasInsuficientesException(
+                    "No tenés suficientes monedas para esta compra.");
         }
 
         this.monedas -= costo;
+
         switch (tipo.toLowerCase()) {
+
             case "fifty": comodinesFifty++; break;
             case "escudo": comodinesEscudo++; break;
             case "cambio": comodinesCambio++; break;
@@ -131,80 +162,193 @@ public class JuegoService {
         }
     }
 
-    // Métodos para consumir comodines durante la partida
-    public boolean usarComodinFifty() {
-        if (comodinesFifty > 0) {
-            comodinesFifty--;
-            return true;
-        }
-        return false;
+    // Utilización de comodines
+   
+public boolean usarComodinFifty()
+        throws ComodinNoDisponibleException {
+
+    if (comodinesFifty > 0) {
+        comodinesFifty--;
+        return true;
     }
 
-    public boolean usarEscudo() {
-        if (comodinesEscudo > 0 && !escudoActivo) {
-            comodinesEscudo--;
-            escudoActivo = true;
-            return true;
-        }
-        return false;
+    throw new ComodinNoDisponibleException(
+            "No tenés bombas 50/50 disponibles. ¡Compralas en la tienda!"
+    );
+}
+
+public boolean usarEscudo()
+        throws ComodinNoDisponibleException {
+
+    if (comodinesEscudo <= 0) {
+        throw new ComodinNoDisponibleException(
+                "No tenés escudos disponibles. ¡Compralos en la tienda!"
+        );
     }
 
-    public boolean usarCambio() {
-        if (comodinesCambio > 0) {
-            comodinesCambio--;
-            return true;
-        }
-        return false;
+    if (escudoActivo) {
+        throw new ComodinNoDisponibleException(
+                "Ya tenés un escudo activado en esta pregunta."
+        );
     }
 
-    public boolean usarPista() {
-        if (comodinesPista > 0) {
-            comodinesPista--;
-            return true;
-        }
-        return false;
+    comodinesEscudo--;
+    escudoActivo = true;
+    return true;
+}
+
+public boolean usarCambio()
+        throws ComodinNoDisponibleException {
+
+    if (comodinesCambio > 0) {
+        comodinesCambio--;
+        return true;
     }
 
-    public boolean usarDobleOp() {
-        if (comodinesDobleOp > 0 && !dobleOpActiva) {
-            comodinesDobleOp--;
-            dobleOpActiva = true;
+    throw new ComodinNoDisponibleException(
+            "No tenés cambios de pregunta disponibles. ¡Compralos en la tienda!"
+    );
+}
+
+public boolean usarPista()
+        throws ComodinNoDisponibleException {
+
+    if (comodinesPista > 0) {
+        comodinesPista--;
+        return true;
+    }
+
+    throw new ComodinNoDisponibleException(
+            "No tenés pistas disponibles. ¡Compralas en la tienda!"
+    );
+}
+
+public boolean usarDobleOp()
+        throws ComodinNoDisponibleException {
+
+    if (comodinesDobleOp <= 0) {
+        throw new ComodinNoDisponibleException(
+                "No tenés comodines de Doble Oportunidad disponibles."
+        );
+    }
+
+    if (dobleOpActiva) {
+        throw new ComodinNoDisponibleException(
+                "Ya tenés activada la Doble Oportunidad."
+        );
+    }
+
+    comodinesDobleOp--;
+    dobleOpActiva = true;
+    intentosDobleOp = 0;
+    return true;
+}
+
+
+public boolean registrarTiempoAgotado()
+        throws SinVidasDisponiblesException {
+System.out.println("Registrando tiempo agotado...");
+    // Si tiene escudo, lo consume y permite continuar.
+    if (escudoActivo) {
+        escudoActivo = false;
+        return true;
+    }
+
+    // Si tiene doble oportunidad, permite un intento más.
+    if (dobleOpActiva) {
+
+        if (intentosDobleOp == 0) {
+            intentosDobleOp++;
+            return true;
+        } else {
+            dobleOpActiva = false;
             intentosDobleOp = 0;
-            return true;
         }
-        return false;
     }
+
+    // Si no tiene protección, pierde una vida.
+    vidas--;
+
+    if (vidas <= 0) {
+        throw new SinVidasDisponiblesException(
+                "¡Te has quedado sin vidas!"
+        );
+    }
+
+    return false;
+}
 
     // Getters
     public int getVidas() { return vidas; }
     public int getPuntaje() { return puntaje; }
     public int getMonedas() { return monedas; }
+
     public int getComodinesFifty() { return comodinesFifty; }
     public int getComodinesEscudo() { return comodinesEscudo; }
     public int getComodinesCambio() { return comodinesCambio; }
     public int getComodinesPista() { return comodinesPista; }
     public int getComodinesDobleOp() { return comodinesDobleOp; }
+
     public boolean isEscudoActivo() { return escudoActivo; }
     public boolean isDobleOpActiva() { return dobleOpActiva; }
 
     public void reiniciar() {
+
         Collections.shuffle(this.listaPreguntas);
+
         this.indiceActual = 0;
         this.vidas = 3;
         this.puntaje = 0;
+
         resetearComodinesTurno();
     }
-    // Método que se ejecuta únicamente cuando el jugador pierde (Game Over)
-    
-public void reiniciarPorDerrota() {
-    Collections.shuffle(this.listaPreguntas);
-    this.indiceActual = 0;
-    this.vidas = 3;
-    this.puntaje = 0;
 
-    // El jugador pierde solamente el 20% de sus monedas
-    this.monedas -= (int) (this.monedas * 0.20);
+    public void reiniciarPorDerrota() {
 
-    resetearComodinesTurno();
+        Collections.shuffle(this.listaPreguntas);
+
+        this.indiceActual = 0;
+        this.vidas = 3;
+        this.puntaje = 0;
+
+        // El jugador pierde el 20% de sus monedas
+        this.monedas -= (int) (this.monedas * 0.20);
+
+        resetearComodinesTurno();
+    }
+    public List<Pregunta> obtenerPreguntasPorCategoria(String categoria)
+        throws CategoriaInvalidaException {
+
+    if (categoria == null || categoria.trim().isEmpty()) {
+        throw new CategoriaInvalidaException(
+                "La categoría no puede estar vacía."
+        );
+    }
+
+    String[] categoriasValidas = {
+        "Películas",
+        "Series",
+        "Animes",
+        "Fútbol argentino",
+        "Fútbol europeo",
+        "Dibujos animados"
+    };
+
+    boolean encontrada = false;
+
+    for (String categoriaValida : categoriasValidas) {
+        if (categoriaValida.equalsIgnoreCase(categoria.trim())) {
+            encontrada = true;
+            break;
+        }
+    }
+
+    if (!encontrada) {
+        throw new CategoriaInvalidaException(
+                "La categoría '" + categoria + "' no existe."
+        );
+    }
+
+    return preguntaDAO.obtenerPorCategoria(categoria);
 }
 }
