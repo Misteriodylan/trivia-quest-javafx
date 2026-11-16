@@ -1,6 +1,7 @@
 package com.view;
 
-import com.dao.UsuarioDAO;
+
+import com.service.UsuarioService;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -10,14 +11,14 @@ import javafx.stage.Stage;
 
 public class LoginView {
 
-    private final UsuarioDAO usuarioDAO;
+    private final UsuarioService usuarioService;
     private final Stage stage;
     public static String usuarioLogueado = "";
 
     public LoginView(Stage stage) {
-        this.stage = stage;
-        this.usuarioDAO = new UsuarioDAO();
-    }
+    this.stage = stage;
+    this.usuarioService = new UsuarioService();
+}
 
     public Scene crearEscena() {
         VBox root = new VBox(16);
@@ -75,7 +76,7 @@ public class LoginView {
                 return;
             }
 
-            if (usuarioDAO.validarLogin(user, pass)) {
+            if (usuarioService.validarLogin(user, pass)) {
                 usuarioLogueado = user;
                 com.main.Main.iniciarJuegoPrincipal(stage);
             } else {
@@ -94,7 +95,7 @@ public class LoginView {
                 return;
             }
 
-            boolean registrado = usuarioDAO.registrarUsuario(user, pass);
+            boolean registrado = usuarioService.registrarUsuario(user, pass);
             if (registrado) {
                 lblMensaje.setText("¡Cuenta creada! Ahora podés iniciar sesión.");
                 lblMensaje.setStyle("-fx-text-fill: #7df5b2;");
