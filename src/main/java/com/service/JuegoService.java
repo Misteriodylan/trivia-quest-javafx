@@ -3,9 +3,8 @@ package com.service;
 
 import com.dao.PreguntaDAO;
 import com.excepciones.MonedasInsuficientesException;
-import com.excepciones.CategoriaInvalidaException;
+import com.excepciones.RespuestaInvalidaException;
 import com.excepciones.ComodinNoDisponibleException;
-import com.excepciones.TiempoAgotadoException;
 import com.excepciones.SinVidasDisponiblesException;
 import com.model.Pregunta;
 import com.interfaz.Evaluable;
@@ -88,47 +87,74 @@ public class JuegoService {
     }
 
     // Ahora recibe la interfaz Evaluable
-    public boolean responder(Evaluable p, int opcionSeleccionada)
-            throws SinVidasDisponiblesException {
+    
+public boolean responder(Evaluable p, int opcionSeleccionada)
+        throws SinVidasDisponiblesException,
+               RespuestaInvalidaException {
 
-        boolean correcta = p.evaluarRespuesta(opcionSeleccionada);
+    // Verificar que exista una pregunta.
+    if (p == null || !(p instanceof Pregunta)) {
+    throw new RespuestaInvalidaException(
+            "La pregunta seleccionada no es válida."
+    );
+}
 
-        if (correcta) {
+    Pregunta pregunta = (Pregunta) p;
 
-            puntaje += 10;
-            monedas += 10;
+    // Obtener la cantidad de opciones disponibles.
+    int cantidadOpciones = pregunta.getOpciones().length;
 
-            return true;
+    // Verificar que la opción seleccionada sea válida.
+    if (opcionSeleccionada < 1 ||
+            opcionSeleccionada > cantidadOpciones) {
 
-        } else {
+        throw new RespuestaInvalidaException(
+                "La opción seleccionada no es válida. "
+                + "Elegí un número entre 1 y "
+                + cantidadOpciones + "."
+        );
+    }
 
-            if (escudoActivo) {
-                escudoActivo = false;
-                return false;
-            }
+    boolean correcta = p.evaluarRespuesta(opcionSeleccionada);
 
-            if (dobleOpActiva) {
+    if (correcta) {
 
-                if (intentosDobleOp == 0) {
-                    intentosDobleOp++;
-                    return false;
+        puntaje += 10;
+        monedas += 10;
 
-                } else {
-                    dobleOpActiva = false;
-                    intentosDobleOp = 0;
-                }
-            }
+        return true;
 
-            vidas--;
+    } else {
 
-            if (vidas <= 0) {
-                throw new SinVidasDisponiblesException(
-                        "¡Te has quedado sin vidas!");
-            }
-
+        if (escudoActivo) {
+            escudoActivo = false;
             return false;
         }
+
+        if (dobleOpActiva) {
+
+            if (intentosDobleOp == 0) {
+                intentosDobleOp++;
+                return false;
+
+            } else {
+                dobleOpActiva = false;
+                intentosDobleOp = 0;
+            }
+        }
+
+        vidas--;
+
+        if (vidas <= 0) {
+            throw new SinVidasDisponiblesException(
+                    "¡Te has quedado sin vidas!"
+            );
+        }
+
+        return false;
     }
+}
+
 
     // Compras de comodines
     public void comprarComodin(String tipo)
@@ -316,39 +342,7 @@ System.out.println("Registrando tiempo agotado...");
 
         resetearComodinesTurno();
     }
-    public List<Pregunta> obtenerPreguntasPorCategoria(String categoria)
-        throws CategoriaInvalidaException {
-
-    if (categoria == null || categoria.trim().isEmpty()) {
-        throw new CategoriaInvalidaException(
-                "La categoría no puede estar vacía."
-        );
-    }
-
-    String[] categoriasValidas = {
-        "Películas",
-        "Series",
-        "Animes",
-        "Fútbol argentino",
-        "Fútbol europeo",
-        "Dibujos animados"
-    };
-
-    boolean encontrada = false;
-
-    for (String categoriaValida : categoriasValidas) {
-        if (categoriaValida.equalsIgnoreCase(categoria.trim())) {
-            encontrada = true;
-            break;
-        }
-    }
-
-    if (!encontrada) {
-        throw new CategoriaInvalidaException(
-                "La categoría '" + categoria + "' no existe."
-        );
-    }
-
-    return preguntaDAO.obtenerPorCategoria(categoria);
 }
-}
+
+
+

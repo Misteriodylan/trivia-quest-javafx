@@ -5,6 +5,7 @@ import com.excepciones.ComodinNoDisponibleException;
 import com.excepciones.MonedasInsuficientesException;
 import com.excepciones.SinVidasDisponiblesException;
 import com.excepciones.TiempoAgotadoException;
+import com.excepciones.RespuestaInvalidaException;
 import com.model.Pregunta;
 import com.service.JuegoService;
 import com.view.LoginView;
@@ -542,8 +543,8 @@ private void usarBomba() {
 
             for (int i = 0; i < ops.length; i++) {
 
-                if (!preguntaActual.evaluarRespuesta(i)
-                        && deshabilitadas < maxDeshabilitar) {
+                if (!preguntaActual.evaluarRespuesta(i + 1)
+        && deshabilitadas < maxDeshabilitar) {
 
                     rbOpciones[i].setDisable(true);
                     deshabilitadas++;
@@ -656,103 +657,109 @@ private void usarBomba() {
     // PROCESAR RESPUESTAS
     // ==========================================
 
-    private void procesarRespuesta() {
+    
+private void procesarRespuesta() {
 
-        int seleccion = -1;
+    int seleccion = -1;
 
-        for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
 
-            if (rbOpciones[i].isVisible()
-                    && rbOpciones[i].isSelected()
-                    && !rbOpciones[i].isDisable()) {
+        if (rbOpciones[i].isVisible()
+                && rbOpciones[i].isSelected()
+                && !rbOpciones[i].isDisable()) {
 
-                seleccion = i;
-                break;
-            }
+            // Las opciones se numeran desde 1.
+            seleccion = i + 1;
+            break;
         }
+    }
 
-        if (seleccion == -1) {
+    if (seleccion == -1) {
+
+        mostrarAlerta(
+                "Advertencia",
+                "Por favor seleccioná una opción disponible.",
+                Alert.AlertType.WARNING
+        );
+
+        return;
+    }
+
+    boolean escudoAntes = juegoService.isEscudoActivo();
+    boolean dobleAntes = juegoService.isDobleOpActiva();
+
+    try {
+
+        boolean correcta = juegoService.responder(
+                preguntaActual, seleccion
+        );
+
+        if (correcta) {
 
             mostrarAlerta(
-                    "Advertencia",
-                    "Por favor seleccione una opción disponible.",
-                    Alert.AlertType.WARNING
+                    "¡Correcto!",
+                    "¡Muy bien! Ganaste 10 monedas.",
+                    Alert.AlertType.INFORMATION
             );
 
-            return;
-        }
+            cargarSiguientePregunta();
 
-        // Guardamos el estado de los comodines antes de responder.
-        boolean escudoAntes = juegoService.isEscudoActivo();
-        boolean dobleAntes = juegoService.isDobleOpActiva();
+        } else {
 
-        detenerTemporizador();
-
-        try {
-
-            boolean correcta = juegoService.responder(
-                    preguntaActual, seleccion
-            );
-
-            if (correcta) {
+            if (escudoAntes) {
 
                 mostrarAlerta(
-                        "¡Correcto!",
-                        "¡Muy bien! Ganaste 10 monedas.",
-                        Alert.AlertType.INFORMATION
+                        "Respuesta Errónea",
+                        "¡El escudo te protegió de perder una vida! "
+                        + "Intentá responder nuevamente.",
+                        Alert.AlertType.WARNING
                 );
 
-                cargarSiguientePregunta();
+                rbOpciones[seleccion - 1].setDisable(true);
+                iniciarTemporizador();
+
+            } else if (dobleAntes
+                    && juegoService.isDobleOpActiva()) {
+
+                mostrarAlerta(
+                        "Respuesta Errónea",
+                        "¡Tenés Doble Oportunidad! "
+                        + "Probá con otra opción.",
+                        Alert.AlertType.WARNING
+                );
+
+                rbOpciones[seleccion - 1].setDisable(true);
+                iniciarTemporizador();
 
             } else {
 
-                if (escudoAntes) {
+                mostrarAlerta(
+                        "Incorrecto",
+                        "Respuesta errónea.",
+                        Alert.AlertType.ERROR
+                );
 
-                    mostrarAlerta(
-                            "Respuesta Errónea",
-                            "¡El escudo te protegió de perder una vida! "
-                            + "Intentá responder nuevamente.",
-                            Alert.AlertType.WARNING
-                    );
-
-                    rbOpciones[seleccion].setDisable(true);
-
-                    iniciarTemporizador();
-
-                } else if (dobleAntes
-                        && juegoService.isDobleOpActiva()) {
-
-                    mostrarAlerta(
-                            "Respuesta Errónea",
-                            "¡Tenés Doble Oportunidad! "
-                            + "Probá con otra opción.",
-                            Alert.AlertType.WARNING
-                    );
-
-                    rbOpciones[seleccion].setDisable(true);
-
-                    iniciarTemporizador();
-
-                } else {
-
-                    mostrarAlerta(
-                            "Incorrecto",
-                            "Respuesta errónea.",
-                            Alert.AlertType.ERROR
-                    );
-
-                    cargarSiguientePregunta();
-                }
+                cargarSiguientePregunta();
             }
-
-            actualizarEstadoTexto();
-
-        } catch (SinVidasDisponiblesException ex) {
-
-            detenerTemporizador();
-            manejarGameOver(ex);
         }
+
+        actualizarEstadoTexto();
+
+    } catch (RespuestaInvalidaException ex) {
+
+        mostrarAlerta(
+                "Respuesta inválida",
+                ex.getMessage(),
+                Alert.AlertType.WARNING
+        );
+
+    } catch (SinVidasDisponiblesException ex) {
+
+        detenerTemporizador();
+        manejarGameOver(ex);
     }
+}
+
 
     // ==========================================
     // GAME OVER
