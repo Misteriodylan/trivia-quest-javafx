@@ -184,8 +184,10 @@ public class Main extends Application {
         );
 
         lblPregunta = new Label();
-        lblPregunta.setId("lbl-pregunta");
-        lblPregunta.setWrapText(true);
+lblPregunta.setId("lbl-pregunta");
+lblPregunta.setWrapText(true);
+lblPregunta.setMaxWidth(680);
+lblPregunta.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
 
         lblPista = new Label("");
         lblPista.setId("lbl-pista");
