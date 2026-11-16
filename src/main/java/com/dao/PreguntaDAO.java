@@ -42,7 +42,7 @@ public class PreguntaDAO {
                     while (rs.next()) {
                         String enunciado = rs.getString("enunciado");
                         String tipo = rs.getString("tipo");
-                        int respuestaCorrecta = rs.getInt("respuesta_correcta");
+                        int respuestaCorrecta = rs.getInt("respuesta_correcta") + 1;
 
                         String opA = rs.getString("opcion_a");
                         String opB = rs.getString("opcion_b");
