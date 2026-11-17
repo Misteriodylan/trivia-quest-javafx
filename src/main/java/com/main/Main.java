@@ -1,6 +1,8 @@
 
 package com.main;
 
+import java.util.List;
+
 import com.excepciones.ComodinNoDisponibleException;
 import com.excepciones.MonedasInsuficientesException;
 import com.excepciones.SinVidasDisponiblesException;
@@ -8,6 +10,7 @@ import com.excepciones.TiempoAgotadoException;
 import com.excepciones.RespuestaInvalidaException;
 import com.model.Pregunta;
 import com.service.JuegoService;
+import com.service.UsuarioService;
 import com.view.LoginView;
 
 import javafx.animation.KeyFrame;
@@ -20,6 +23,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.application.Platform;
@@ -27,11 +31,12 @@ public class Main extends Application {
 
     private JuegoService juegoService = new JuegoService();
     private StackPane rootContainer;
-
+    private UsuarioService usuarioService = new UsuarioService();
     private VBox homeScreen;
     private VBox gameScreen;
     private VBox shopScreen;
-
+    private VBox rankingScreen;
+    private VBox rankingLista;
     private Label lblPregunta;
     private Label lblEstado;
     private Label lblPista;
@@ -76,13 +81,13 @@ public class Main extends Application {
     public void lanzarVentanaPrincipal(Stage primaryStage) {
 
         rootContainer = new StackPane();
-
+        rankingScreen = crearPantallaRanking();
         homeScreen = crearPantallaHome();
         gameScreen = crearPantallaJuego();
         shopScreen = crearPantallaTienda();
 
         rootContainer.getChildren().addAll(
-                homeScreen, gameScreen, shopScreen
+                homeScreen, gameScreen, shopScreen, rankingScreen
         );
 
         mostrarPantalla(homeScreen);
@@ -147,7 +152,14 @@ public class Main extends Application {
             mostrarPantalla(shopScreen);
         });
 
-        HBox acciones = new HBox(15, btnJugar, btnTienda);
+        Button btnRanking = new Button("🏆 RANKING");
+btnRanking.setId("secondary-button");
+
+btnRanking.setOnAction(e -> {
+    actualizarRanking();
+    mostrarPantalla(rankingScreen);
+});
+        HBox acciones = new HBox(15, btnJugar, btnTienda, btnRanking);
         acciones.setId("home-actions");
         acciones.setAlignment(Pos.CENTER);
 
@@ -322,7 +334,80 @@ lblPregunta.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
 
         return btn;
     }
+    private VBox crearPantallaRanking() {
 
+    VBox ranking = new VBox(18);
+    ranking.setId("ranking-screen");
+    ranking.setPadding(new Insets(30));
+    ranking.setAlignment(Pos.CENTER);
+
+    Label titulo = new Label("🏆 RANKING GLOBAL");
+    titulo.setId("section-title");
+
+    Label subtitulo = new Label("LOS 10 MEJORES JUGADORES");
+
+    rankingLista = new VBox(10);
+    rankingLista.setAlignment(Pos.CENTER);
+
+    Button btnVolver = new Button("← VOLVER AL INICIO");
+    btnVolver.setId("back-button");
+
+    btnVolver.setOnAction(e -> mostrarPantalla(homeScreen));
+
+    ranking.getChildren().addAll(
+            titulo,
+            subtitulo,
+            rankingLista,
+            btnVolver
+    );
+
+    return ranking;
+}
+
+private void actualizarRanking() {
+
+    rankingLista.getChildren().clear();
+
+    List<String[]> ranking =
+            usuarioService.obtenerTopRanking();
+
+    if (ranking.isEmpty()) {
+
+        rankingLista.getChildren().add(
+                new Label("Todavía no hay puntajes registrados.")
+        );
+
+        return;
+    }
+
+    int posicion = 1;
+
+    for (String[] jugador : ranking) {
+
+        HBox fila = new HBox(20);
+        fila.setAlignment(Pos.CENTER);
+        fila.setPadding(new Insets(10));
+
+        Label puesto = new Label("#" + posicion);
+puesto.setTextFill(Color.WHITE);
+
+Label nombre = new Label(jugador[0]);
+nombre.setTextFill(Color.WHITE);
+
+Label puntos = new Label(jugador[1] + " pts");
+puntos.setTextFill(Color.WHITE);
+
+        fila.getChildren().addAll(
+                puesto,
+                nombre,
+                puntos
+        );
+
+        rankingLista.getChildren().add(fila);
+
+        posicion++;
+    }
+}
     private void mostrarPantalla(VBox pantallaTarget) {
 
         if (pantallaTarget != gameScreen) {
@@ -498,18 +583,25 @@ private void iniciarTemporizador() {
 
         } else {
 
-            detenerTemporizador();
+    detenerTemporizador();
 
-            mostrarAlerta(
-                    "¡Juego Terminado!",
-                    "Has completado todas las preguntas.\nPuntaje final: "
-                    + juegoService.getPuntaje(),
-                    Alert.AlertType.INFORMATION
-            );
+    int puntajeFinal = juegoService.getPuntaje();
 
-            juegoService.reiniciar();
-            mostrarPantalla(homeScreen);
-        }
+    usuarioService.guardarPuntaje(
+            LoginView.usuarioLogueado,
+            puntajeFinal
+    );
+
+    mostrarAlerta(
+            "¡Juego Terminado!",
+            "Has completado todas las preguntas.\nPuntaje final: "
+            + puntajeFinal,
+            Alert.AlertType.INFORMATION
+    );
+
+    juegoService.reiniciar();
+    mostrarPantalla(homeScreen);
+}
     }
 
     private void actualizarEstadoTexto() {
@@ -772,7 +864,12 @@ private void procesarRespuesta() {
         detenerTemporizador();
 
         int monedasAntes = juegoService.getMonedas();
+        int puntajeFinal = juegoService.getPuntaje();
 
+usuarioService.guardarPuntaje(
+    LoginView.usuarioLogueado,
+    puntajeFinal
+);
         juegoService.reiniciarPorDerrota();
 
         int monedasPerdidas =

@@ -60,6 +60,8 @@ public class UsuarioDAO {
                     try (PreparedStatement pstmtInsert = conexion.prepareStatement(queryInsertRanking)) {
                         pstmtInsert.setInt(1, idUsuario);
                         pstmtInsert.setInt(2, puntaje);
+                        System.out.println("================================");
+
                         pstmtInsert.executeUpdate();
                     }
                 }
@@ -72,9 +74,7 @@ public class UsuarioDAO {
     // Obtener el Top 10 del Ranking para mostrar en la interfaz
     public List<String[]> obtenerTopRanking() {
         List<String[]> topList = new ArrayList<>();
-        String query = "SELECT u.nombre_usuario, r.puntaje FROM ranking r " +
-                       "JOIN usuarios u ON r.id_usuario = u.id " +
-                       "ORDER BY r.puntaje DESC LIMIT 10";
+        String query = "SELECT u.nombre_usuario,MAX(r.puntaje) AS puntaje FROM ranking r INNER JOIN usuarios u ON r.id_usuario = u.id GROUP BY u.id, u.nombre_usuario ORDER BY puntaje DESC LIMIT 10";
 
         try (Connection conexion = DriverManager.getConnection(URL, USER, PASSWORD);
              Statement stmt = conexion.createStatement();
